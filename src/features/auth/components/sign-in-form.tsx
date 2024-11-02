@@ -129,5 +129,3 @@ export function SignInForm() {
     </Card>
   );
 }
-
-// https://youtu.be/Av9C7xlV0fA?t=5658
