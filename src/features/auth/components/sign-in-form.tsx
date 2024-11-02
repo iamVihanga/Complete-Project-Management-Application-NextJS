@@ -27,8 +27,11 @@ import {
   signInSchema,
 } from "@/features/auth/schemas/sign-in.schema";
 import Link from "next/link";
+import { useLogin } from "../api/use-login";
 
 export function SignInForm() {
+  const { mutate } = useLogin();
+
   const form = useForm<SignInSchemaT>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -38,7 +41,9 @@ export function SignInForm() {
   });
 
   const onSubmit = async (values: SignInSchemaT) => {
-    console.log(values);
+    mutate({
+      json: values,
+    });
   };
 
   return (

@@ -4,6 +4,7 @@ import { fontHeading, fontSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -24,7 +25,7 @@ export default function RootLayout({
           "antialiased font-sans min-h-screen"
         )}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

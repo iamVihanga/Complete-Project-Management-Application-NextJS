@@ -19,7 +19,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 
@@ -29,7 +28,11 @@ import {
 } from "@/features/auth/schemas/sign-up.schema";
 import Link from "next/link";
 
+import { useRegister } from "@/features/auth/api/use-register";
+
 export function SignUpForm() {
+  const { mutate } = useRegister();
+
   const form = useForm<SignUpSchemaT>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -40,7 +43,9 @@ export function SignUpForm() {
   });
 
   const onSubmit = async (values: SignUpSchemaT) => {
-    console.log(values);
+    mutate({
+      json: values,
+    });
   };
 
   return (
