@@ -8,8 +8,18 @@ import { createAdminClient } from "@/lib/appwrite";
 import { signInSchema } from "@/features/auth/schemas/sign-in.schema";
 import { signUpSchema } from "@/features/auth/schemas/sign-up.schema";
 import { AUTH_COOKIE } from "../constants";
+import { sessionMiddleware } from "@/lib/session-middleware";
 
 const app = new Hono()
+  /**
+   * Get current authentication user Handler
+   */
+  .get("/current", sessionMiddleware, (c) => {
+    const user = c.get("user");
+
+    return c.json({ data: user });
+  })
+
   /**
    * Login API Handler
    */
@@ -67,9 +77,12 @@ const app = new Hono()
   /**
    * Register API Handler
    */
-  .post("/logout", (c) => {
+  .post("/logout", sessionMiddleware, async (c) => {
+    const account = c.get("account");
+
     // Session Cookie handelling (with hono/cookie)
     deleteCookie(c, AUTH_COOKIE);
+    await account.deleteSession("current");
 
     return c.json({ success: true });
   });
