@@ -1,3 +1,4 @@
+import { Navbar } from "@/components/global/navbar";
 import { Sidebar } from "@/components/global/sidebar";
 import React from "react";
 
@@ -13,9 +14,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <Sidebar />
         </div>
 
-        <div className="lg:pl-[264px]">
+        <div className="lg:pl-[264px] w-full">
           <div className="mx-auto max-w-screen-2xl h-full">
-            {/* TODO: Navbar */}
+            <Navbar />
 
             <main className="h-full py-8 px-6 flex flex-col">{children}</main>
           </div>
