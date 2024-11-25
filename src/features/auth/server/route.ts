@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { ID } from "node-appwrite";
+import { AppwriteException, ID } from "node-appwrite";
 import { zValidator } from "@hono/zod-validator";
 import { deleteCookie, setCookie } from "hono/cookie";
 
@@ -24,67 +24,134 @@ const app = new Hono()
    * Login API Handler
    */
   .post("/login", zValidator("json", signInSchema), async (c) => {
-    const { email, password } = c.req.valid("json");
+    try {
+      const { email, password } = c.req.valid("json");
 
-    // Appwrite login methology
-    const { account } = await createAdminClient();
+      // Appwrite login methology
+      const { account } = await createAdminClient();
 
-    const session = await account.createEmailPasswordSession(email, password);
+      const session = await account.createEmailPasswordSession(email, password);
 
-    // Session Cookie handelling (with hono/cookie)
-    setCookie(c, AUTH_COOKIE, session.secret, {
-      path: "/",
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === "production",
-      secure: true,
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 30,
-    });
+      // Session Cookie handelling (with hono/cookie)
+      setCookie(c, AUTH_COOKIE, session.secret, {
+        path: "/",
+        httpOnly: true,
+        // secure: process.env.NODE_ENV === "production",
+        secure: true,
+        sameSite: "strict",
+        maxAge: 60 * 60 * 24 * 30,
+      });
 
-    return c.json({ email, password });
+      return c.json(
+        { data: { email, password }, error: null, success: true },
+        200
+      );
+    } catch (error) {
+      if (error instanceof AppwriteException) {
+        return c.json(
+          {
+            data: null,
+            error: error.message,
+            success: false,
+          },
+          500
+        );
+      }
+
+      return c.json(
+        {
+          data: null,
+          error: "An unexpected error occurred",
+          success: false,
+        },
+        500
+      );
+    }
   })
 
   /**
    * Register API Handler
    */
   .post("/register", zValidator("json", signUpSchema), async (c) => {
-    const { email, name, password } = c.req.valid("json");
+    try {
+      const { email, name, password } = c.req.valid("json");
 
-    // Appwrite signup methology
-    const { account } = await createAdminClient();
+      // Appwrite signup methology
+      const { account } = await createAdminClient();
 
-    const user = await account.create(ID.unique(), email, password, name);
+      const user = await account.create(ID.unique(), email, password, name);
 
-    /**
-     * This is not essential for signup process.
-     * But, if you want to login the user after signup, you can use this code.
-     */
-    const session = await account.createEmailPasswordSession(email, password);
+      /**
+       * This is not essential for signup process.
+       * But, if you want to login the user after signup, you can use this code.
+       */
+      const session = await account.createEmailPasswordSession(email, password);
 
-    // Session Cookie handelling (with hono/cookie)
-    setCookie(c, AUTH_COOKIE, session.secret, {
-      path: "/",
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === "production",
-      secure: true,
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 30,
-    });
+      // Session Cookie handelling (with hono/cookie)
+      setCookie(c, AUTH_COOKIE, session.secret, {
+        path: "/",
+        httpOnly: true,
+        // secure: process.env.NODE_ENV === "production",
+        secure: true,
+        sameSite: "strict",
+        maxAge: 60 * 60 * 24 * 30,
+      });
 
-    return c.json({ success: true, data: user });
+      return c.json({ success: true, data: user, error: null }, 200);
+    } catch (error) {
+      if (error instanceof AppwriteException) {
+        return c.json(
+          {
+            success: false,
+            data: null,
+            error: error.message,
+          },
+          500
+        );
+      }
+
+      return c.json(
+        {
+          success: false,
+          data: null,
+          error: "An unexpected error occurred",
+        },
+        500
+      );
+    }
   })
 
   /**
    * Register API Handler
    */
   .post("/logout", sessionMiddleware, async (c) => {
-    const account = c.get("account");
+    try {
+      const account = c.get("account");
 
-    // Session Cookie handelling (with hono/cookie)
-    deleteCookie(c, AUTH_COOKIE);
-    await account.deleteSession("current");
+      // Session Cookie handelling (with hono/cookie)
+      deleteCookie(c, AUTH_COOKIE);
+      await account.deleteSession("current");
 
-    return c.json({ success: true });
+      return c.json({ success: true, error: null });
+    } catch (error) {
+      if (error instanceof AppwriteException) {
+        return c.json(
+          {
+            success: false,
+            error: error.message,
+          },
+          500
+        );
+      }
+
+      return c.json(
+        {
+          success: false,
+          error: "An unexpected error occurred",
+        },
+        500
+      );
+    }
   });
 
 export default app;

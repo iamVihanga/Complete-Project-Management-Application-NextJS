@@ -1,3 +1,5 @@
+"use client";
+
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { useForm } from "react-hook-form";
@@ -29,9 +31,10 @@ import {
 import Link from "next/link";
 
 import { useRegister } from "@/features/auth/api/use-register";
+import { Loader } from "lucide-react";
 
 export function SignUpForm() {
-  const { mutate } = useRegister();
+  const { mutate, isPending } = useRegister();
 
   const form = useForm<SignUpSchemaT>({
     resolver: zodResolver(signUpSchema),
@@ -68,6 +71,7 @@ export function SignUpForm() {
                 <FormItem>
                   <FormControl>
                     <Input
+                      disabled={isPending}
                       type="text"
                       placeholder="Enter your name"
                       {...field}
@@ -84,6 +88,7 @@ export function SignUpForm() {
                 <FormItem>
                   <FormControl>
                     <Input
+                      disabled={isPending}
                       type="email"
                       placeholder="Enter email address"
                       {...field}
@@ -100,6 +105,7 @@ export function SignUpForm() {
                 <FormItem>
                   <FormControl>
                     <Input
+                      disabled={isPending}
                       type="password"
                       placeholder="Enter password"
                       {...field}
@@ -110,7 +116,8 @@ export function SignUpForm() {
               )}
             />
 
-            <Button size={"lg"} disabled={false} className="w-full">
+            <Button size={"lg"} disabled={isPending} className="w-full">
+              {isPending && <Loader className="size-4 mr-2 animate-spin" />}
               Sign Up
             </Button>
           </form>
