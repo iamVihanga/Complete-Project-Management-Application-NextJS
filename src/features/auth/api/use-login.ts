@@ -23,10 +23,12 @@ export const useLogin = () => {
       return data;
     },
     onSuccess: () => {
+      toast.success("Logged in");
       router.refresh();
       queryClient.invalidateQueries({ queryKey: ["current"] });
     },
     onError: (error) => {
+      toast.error(error.message);
       toast.error(error.message);
     },
   });
