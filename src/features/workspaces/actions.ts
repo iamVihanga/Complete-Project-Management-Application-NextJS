@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 
 import { AUTH_COOKIE } from "@/features/auth/constants";
 import { DATABASE_ID, MEMBERS_ID, WORKSPACES_ID } from "@/config";
+import { getWorkspaceMember } from "../members/utils";
+import { Workspace } from "./types";
 
 export async function getWorkspaces() {
   try {
@@ -40,5 +42,46 @@ export async function getWorkspaces() {
     return workspaces;
   } catch (err) {
     return { documents: [], total: 0 };
+  }
+}
+
+// Get single workspace
+interface GetWorkspaceParams {
+  workspaceId: string;
+}
+
+export async function getWorkspace({ workspaceId }: GetWorkspaceParams) {
+  try {
+    const client = new Client()
+      .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
+      .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!);
+
+    const session = await cookies().get(AUTH_COOKIE);
+
+    if (!session) return null;
+
+    client.setSession(session.value);
+
+    const databases = new Databases(client);
+    const account = new Account(client);
+    const user = await account.get();
+
+    const member = await getWorkspaceMember({
+      databases,
+      userId: user.$id,
+      workspaceId,
+    });
+
+    if (!member) return null;
+
+    const workspace = await databases.getDocument<Workspace>(
+      DATABASE_ID,
+      WORKSPACES_ID,
+      workspaceId
+    );
+
+    return workspace;
+  } catch (err) {
+    return null;
   }
 }

@@ -2,8 +2,12 @@ import { Hono } from "hono";
 import { ID, Query } from "node-appwrite";
 import { zValidator } from "@hono/zod-validator";
 
+import { generateInviteCode } from "@/lib/utils";
 import { sessionMiddleware } from "@/lib/session-middleware";
+
 import { createWorkspaceSchema } from "../schemas/create-workspace.schema";
+import { updateWorkspaceSchema } from "../schemas/update-workspace.schema";
+
 import {
   DATABASE_ID,
   IMAGES_BUCKET_ID,
@@ -11,9 +15,12 @@ import {
   WORKSPACES_ID,
 } from "@/config";
 import { MemberRole } from "@/features/members/types";
-import { generateInviteCode } from "@/lib/utils";
+import { getWorkspaceMember } from "@/features/members/utils";
 
 const app = new Hono()
+  /*
+    Fetch Workspaces Route
+  */
   .get("/", sessionMiddleware, async (c) => {
     const user = c.get("user");
     const databases = c.get("databases");
@@ -36,6 +43,10 @@ const app = new Hono()
 
     return c.json({ data: workspaces });
   })
+
+  /*
+    Create Workspace Route
+  */
   .post(
     "/",
     zValidator("form", createWorkspaceSchema),
@@ -86,6 +97,67 @@ const app = new Hono()
       });
 
       return c.json({ data: workspace });
+    }
+  )
+
+  /*
+    Update Workspace Route
+  */
+  .patch(
+    "/:workspaceId",
+    sessionMiddleware,
+    zValidator("form", updateWorkspaceSchema),
+    async (c) => {
+      const databases = c.get("databases");
+      const storage = c.get("storage");
+      const user = c.get("user");
+
+      const { workspaceId } = c.req.param();
+      const { image, name } = c.req.valid("form");
+
+      const member = await getWorkspaceMember({
+        databases,
+        workspaceId,
+        userId: user.$id,
+      });
+
+      if (!member || member.role !== MemberRole.ADMIN) {
+        return c.json({ error: "Unauthroized" }, 401);
+      }
+
+      // -- Handle image upload --
+      let uploadedImageUrl: string | undefined;
+
+      if (image instanceof File) {
+        const file = await storage.createFile(
+          IMAGES_BUCKET_ID,
+          ID.unique(),
+          image
+        );
+
+        const arrayBuffer = await storage.getFilePreview(
+          IMAGES_BUCKET_ID,
+          file.$id
+        );
+
+        uploadedImageUrl = `data:image/png;base64,${Buffer.from(
+          arrayBuffer
+        ).toString("base64")}`;
+      } else {
+        uploadedImageUrl = image;
+      }
+
+      const workspace = await databases.updateDocument(
+        DATABASE_ID,
+        WORKSPACES_ID,
+        workspaceId,
+        {
+          name,
+          imageUrl: uploadedImageUrl,
+        }
+      );
+
+      return c.json({ data: workspace }, 200);
     }
   );
 

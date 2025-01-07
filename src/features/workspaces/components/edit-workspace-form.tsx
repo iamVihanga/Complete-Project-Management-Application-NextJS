@@ -2,14 +2,11 @@
 
 import { useRef } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ImageIcon, Loader, Upload } from "lucide-react";
+import { ArrowLeftIcon, ImageIcon, Loader, Upload } from "lucide-react";
 
-import {
-  createWorkspaceSchema,
-  type CreateWorkspaceSchemaT,
-} from "../schemas/create-workspace.schema";
 import {
   Card,
   CardContent,
@@ -28,36 +25,46 @@ import {
 import DottedSeparator from "@/components/global/dotted-separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useCreateWorkspace } from "../api/use-create-workspace";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 
-interface CreateWorkspaceFormProps {
+import { cn } from "@/lib/utils";
+import { Workspace } from "../types";
+import {
+  updateWorkspaceSchema,
+  type UpdateWorkspaceSchemaT,
+} from "../schemas/update-workspace.schema";
+import { useUpdateWorkspace } from "../api/use-update-workspace";
+
+interface EditWorkspaceFormProps {
   onCancel?: () => void;
+  initialValues: Workspace;
 }
 
-export const CreateWorkspaceForm = ({ onCancel }: CreateWorkspaceFormProps) => {
+export const EditWorkspaceForm = ({
+  onCancel,
+  initialValues,
+}: EditWorkspaceFormProps) => {
   const router = useRouter();
-  const { mutate, isPending } = useCreateWorkspace();
+  const { mutate, isPending } = useUpdateWorkspace();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const form = useForm<CreateWorkspaceSchemaT>({
-    resolver: zodResolver(createWorkspaceSchema),
+  const form = useForm<UpdateWorkspaceSchemaT>({
+    resolver: zodResolver(updateWorkspaceSchema),
     defaultValues: {
-      name: "",
+      ...initialValues,
+      image: initialValues.imageUrl ?? "",
     },
   });
 
-  const onSubmit = (values: CreateWorkspaceSchemaT) => {
+  const onSubmit = (values: UpdateWorkspaceSchemaT) => {
     const finalValues = {
       ...values,
       image: values.image instanceof File ? values.image : "",
     };
 
     mutate(
-      { form: finalValues },
+      { form: finalValues, param: { workspaceId: initialValues.$id } },
       {
         onSuccess: ({ data }) => {
           form.reset();
@@ -76,9 +83,21 @@ export const CreateWorkspaceForm = ({ onCancel }: CreateWorkspaceFormProps) => {
 
   return (
     <Card className="w-full h-full border-none shadow-none">
-      <CardHeader className="flex p-7">
+      <CardHeader className="flex flex-row items-center gap-x-4 p-7 space-y-0">
+        <Button
+          size="sm"
+          variant={"secondary"}
+          onClick={
+            onCancel
+              ? onCancel
+              : () => router.push(`/workspaces/${initialValues.$id}`)
+          }
+        >
+          <ArrowLeftIcon className="size-4 mr-2" />
+          Back
+        </Button>
         <CardTitle className="text-xl font-bold">
-          Create a new workspace
+          {initialValues.name}
         </CardTitle>
       </CardHeader>
 
@@ -193,7 +212,7 @@ export const CreateWorkspaceForm = ({ onCancel }: CreateWorkspaceFormProps) => {
               </Button>
               <Button type="submit" size="lg" disabled={isPending}>
                 {isPending && <Loader className="size-4 mr-2 animate-spin" />}
-                Create Workspace
+                Save Changes
               </Button>
             </div>
           </form>
